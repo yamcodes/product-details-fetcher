@@ -2,7 +2,7 @@
 # TODO: create a separate get function for a product and use it in favorites PUT
 # TODO: favorites GET
 # TODO: determine whether to use source in favorites or not
-0
+
 from sanic import Sanic
 from sanic.response import json
 from enum import Enum
