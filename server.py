@@ -1,11 +1,13 @@
 # TODO: add DB
-# TODO: determine whether to use source in favorites or not
+# Assumption: walmart and amazon have unique ID's (no ID is shared)
+# Potential improvement: use class based views to group same-endpoint functionality
+# TODO: update requirements.txt
 
 from sanic import Sanic
 from sanic.response import json
-from enum import Enum
 import requests
 import json as json_lib
+import aiohttp
 
 app = Sanic(__name__)
 token = "yblyamb829aljfy59"
@@ -17,11 +19,13 @@ async def get_all_product_details(request):
 
 @app.get("/details/<source:(amazon|walmart)>/<source_id:str>")
 async def get_product_details(request, source, source_id):
-    res = requests.get(f"https://ebazon-prod.herokuapp.com/ybl_assignment/{source}/{source_id}/{token}").json()
-    try:  return json(res["data"])
-    except KeyError: return json({"description": "Invalid ID", "message": f"Requested ID {source_id} not found"}, status=404)
-    
-
+    # asynchronously get product details from source
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f"https://ebazon-prod.herokuapp.com/ybl_assignment/{source}/{source_id}/{token}") as response:
+            res_json = await response.json()
+            try:  return json(res_json["data"])
+            except KeyError: return json({"description": "Invalid ID", "message": f"Requested ID {source_id} not found"}, status=404)
+            
 @app.put("/details/<source:(amazon|walmart)>/<source_id:str>")
 async def add_product(request, source, source_id):
     # get product details
@@ -66,7 +70,7 @@ async def add_to_favorites(request,source_id):
     # check if email exists in data["favorites"]. If not, create a new entry in data["favorites"]
     if email not in data["favorites"]: data["favorites"][email] = []
     status = 200
-    res = {"favorites": data["favorites"][email]}
+    res = {"details": data["favorites"][email]}
     # check if item id already exists in the user's favorites list and return an appropriate message
     if source_id in [e["source_id"] for e in data["favorites"][email]]: 
         status = 409
