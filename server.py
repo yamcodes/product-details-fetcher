@@ -1,7 +1,6 @@
 # TODO: add DB
 # Assumption: walmart and amazon have unique ID's (no ID is shared)
 # Potential improvement: use class based views to group same-endpoint functionality
-# TODO: update requirements.txt
 
 from sanic import Sanic
 from sanic.response import json
