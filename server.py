@@ -1,74 +1,84 @@
 # TODO: add DB
-# TODO: create a separate get function for a product and use it in favorites PUT
-# TODO: favorites GET
 # TODO: determine whether to use source in favorites or not
 
 from sanic import Sanic
 from sanic.response import json
 from enum import Enum
 import requests
+import json as json_lib
 
 app = Sanic(__name__)
 token = "yblyamb829aljfy59"
-
 data = {"details": [], "favorites": {}}
 
-@app.put("/details/<source:(amazon|walmart)>/<source_id:str>")
-async def hello_world(request, source, source_id):
-    response = requests.get(f"https://ebazon-prod.herokuapp.com/ybl_assignment/{source}/{source_id}/{token}")
-    res = response.json()
-    try:  res_data = res["data"]
+@app.get("/details")
+async def get_all_product_details(request):
+    return json(data["details"])
+
+@app.get("/details/<source:(amazon|walmart)>/<source_id:str>")
+async def get_product_details(request, source, source_id):
+    res = requests.get(f"https://ebazon-prod.herokuapp.com/ybl_assignment/{source}/{source_id}/{token}").json()
+    try:  return json(res["data"])
     except KeyError: return json({"description": "Invalid ID", "message": f"Requested ID {source_id} not found"}, status=404)
+    
+
+@app.put("/details/<source:(amazon|walmart)>/<source_id:str>")
+async def add_product(request, source, source_id):
+    # get product details
+    res = await get_product(request, source, source_id)
+    # return error if product not found
+    if res.status<200 or res.status>=300: return res
+    # otherwise, add product
+    res_data = json_lib.loads(res.body.decode('utf-8'))
     res_title = res_data["title"]
     res_price = res_data["price"]
-    item = {
-        "source_id": source_id,
-        "title": res_title,
-        "price": res_price,
-        "source": source,
-    }
     status = 200
-    # check if item id already exists in the data list
+    
+    # spin up a dictionary based on the res_data, to add a description and a message and return it
+    res = {"data": res_data}
+    # check if item id already exists in the data list and return an appropriate message
     if source_id in [e["source_id"] for e in data["details"]]:
         res["description"] = "Product Already Exists"
         res["message"] = f"Product with ID {source_id} already exists"
         status = 409
     else:
-        data["details"].append(item)
+        data["details"].append({
+            "source_id": source_id,
+            "title": res_title,
+            "price": res_price,
+            "source": source,
+        })
         res["description"] = "Successfuly Added Product"
         res["message"] = f"Product with ID {source_id} added"
     return json(res, status=status)
-
-@app.get("/details")
-async def get_details(request):
-    return json(data["details"])
 
 @app.put("/favorites/<source_id:str>")
 async def add_to_favorites(request,source_id):
     # get email from request header
     email = request.headers.get("email")
-    # check if id exists in data["details"]
+    # check if id exists in data["details"]. If not, return error
     item = None
     for e in data["details"]:
         if source_id == e["source_id"]:
             item = e
             break
     if item is None: return json({"description": "Invalid ID", "message": f"Requested ID {source_id} not found"}, status=404)
+    # check if email exists in data["favorites"]. If not, create a new entry in data["favorites"]
     if email not in data["favorites"]: data["favorites"][email] = []
     status = 200
     res = {"favorites": data["favorites"][email]}
-    item = {
-        "source_id": source_id,
-        "source": item["source"],
-        "title": item["title"],
-        "price": item["price"]
-    }
+    # check if item id already exists in the user's favorites list and return an appropriate message
     if source_id in [e["source_id"] for e in data["favorites"][email]]: 
         status = 409
         res["description"] = "Product Already in Favorites"
         res["message"] = f"Product with ID {source_id} already exists in favorites"
     else:
-        data["favorites"][email].append(item)
+        data["favorites"][email].append({
+            "source_id": source_id,
+            "source": item["source"],
+            "title": item["title"],
+            "price": item["price"]
+        })
         res["description"] = "Successfuly Added to Favorites"
         res["message"] = f"Product with ID {source_id} added to favorites"
     return json(res,status=status)
