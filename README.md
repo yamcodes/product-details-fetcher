@@ -10,8 +10,10 @@ This project uses sqlite3, to simplify the development of an SQL database. In pr
 
 You may use a program such as Postman or Insomnia to access the endpoints, which are:
 
-`localhost:8000/details/<source:(amazon|walmart)>/<source_id:str> PUT`
-
 `localhost:8000/details GET`
+
+`localhost:8000/details/<source:(amazon|walmart)>/<source_id:str> GET`
+
+`localhost:8000/details/<source:(amazon|walmart)>/<source_id:str> PUT`
 
 `localhost:8000/favorites/<source_id:str> PUT`
