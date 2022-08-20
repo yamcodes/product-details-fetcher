@@ -1,5 +1,7 @@
 # product-details-fetcher
 
+## Prerequisites
+This project uses sqlite3, to simplify the development of an SQL database. In production, it is recommended to switch to PostgreSQL or MySQL. To run this project, please make sure you have sqlite3 installed. If you have a macOS, it is installed by default.
 ## Install & Run
 1. Run `virtualenv venv` (or `python -m virtualenv venv`)
 2. On Linux/macOS, `source  venv/bin/activate`, on Windows, `venv/bin/activiate`
