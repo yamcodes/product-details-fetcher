@@ -11,8 +11,6 @@ from tortoise.contrib.sanic import register_tortoise
 
 app = Sanic(__name__)
 token = "yblyamb829aljfy59"
-data = {"details": [], "favorites": {}}
-
 
 @app.get("/details")
 async def get_all_product_details(request):
@@ -29,7 +27,6 @@ async def get_product_details(request, source, source_id):
             
 @app.put("/details/<source:(amazon|walmart)>/<source_id:str>")
 async def add_product_details(request, source, source_id):
-    # get product details
     res = await get_product_details(request, source, source_id)
     # return error if product not found
     if res.status<200 or res.status>=300: return res
@@ -39,31 +36,18 @@ async def add_product_details(request, source, source_id):
     res_title = res_data["title"]
     res_price = res_data["price"]
     status = 200
-    
     # spin up a dictionary based on the res_data, to add a description and a message and return it
     res = {"data": res_data}
-    # check if item id already exists in the data list and return an appropriate message
-    if source_id in [e["source_id"] for e in data["details"]]:
+    # add product details to database
+    try:
+        await Details.create(source_id=source_id, source=source, title=res_title, price=res_price)
+        res["description"] = "Successfuly Added Product"
+        res["message"] = f"Product with ID {source_id} added"
+    # TODO: add error handling for IntegrityError
+    except:
         res["description"] = "Product Already Exists"
         res["message"] = f"Product with ID {source_id} already exists"
         status = 409
-    else:
-        # add product details to database
-        try:
-            await Details.create(source_id=source_id, source=source, title=res_title, price=res_price)
-            res["description"] = "Successfuly Added Product"
-            res["message"] = f"Product with ID {source_id} added"
-        # TODO: add error handling for IntegrityError
-        except:
-            res["description"] = "Product Already Exists"
-            res["message"] = f"Product with ID {source_id} already exists"
-            status = 409
-        data["details"].append({
-            "source_id": source_id,
-            "title": res_title,
-            "price": res_price,
-            "source": source,
-        })
     return json(res, status=status)
 
 @app.put("/favorites/<source_id:str>")
